@@ -1,10 +1,17 @@
 #include <iostream>
 #include <vector>
-#include <unistd.h>
-#include <termios.h>
-#include <fcntl.h>
 #include <cstdlib>
 #include <ctime>
+
+// Platform-specific includes
+#ifdef WINDOWS_PLATFORM
+    #include <windows.h>
+    #include <conio.h>
+#else
+    #include <unistd.h>
+    #include <termios.h>
+    #include <fcntl.h>
+#endif
 
 using namespace std;
 
@@ -24,29 +31,72 @@ Position food;
 Direction dir;
 bool gameOver = false;
 
+#ifndef WINDOWS_PLATFORM
 termios original_term;
+#endif
 
+// Platform-specific input setup
 void setupInput() {
+#ifdef WINDOWS_PLATFORM
+    // Windows doesn't need special setup for kbhit()
+#else
     tcgetattr(STDIN_FILENO, &original_term);
     termios term = original_term;
     term.c_lflag &= ~(ICANON | ECHO);
     tcsetattr(STDIN_FILENO, TCSANOW, &term);
-
     fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);  // Set non-blocking input
+#endif
 }
 
+// Platform-specific input restoration
 void restoreInput() {
+#ifdef WINDOWS_PLATFORM
+    // Windows doesn't need special restoration
+#else
     tcsetattr(STDIN_FILENO, TCSANOW, &original_term);
     fcntl(STDIN_FILENO, F_SETFL, 0); // Set back to blocking
+#endif
 }
 
+// Platform-specific keyboard hit detection
 int kbhit() {
+#ifdef WINDOWS_PLATFORM
+    return _kbhit();
+#else
     int ch = getchar();
     if (ch != EOF) {
         ungetc(ch, stdin);
         return 1;
     }
     return 0;
+#endif
+}
+
+// Platform-specific character input
+char getCharInput() {
+#ifdef WINDOWS_PLATFORM
+    return _getch();
+#else
+    return getchar();
+#endif
+}
+
+// Platform-specific screen clearing
+void clearScreen() {
+#ifdef WINDOWS_PLATFORM
+    system("cls");
+#else
+    system("clear");
+#endif
+}
+
+// Platform-specific sleep function
+void platformSleep(int milliseconds) {
+#ifdef WINDOWS_PLATFORM
+    Sleep(milliseconds);
+#else
+    usleep(milliseconds * 1000);
+#endif
 }
 
 void initGame() {
@@ -54,11 +104,11 @@ void initGame() {
     snake.clear();
     snake.push_back({WIDTH / 2, HEIGHT / 2});
     srand(time(0));
-    food = {rand() % WIDTH, rand() % HEIGHT};
+    food = {3+ rand() % (WIDTH-6)+3, 3 +rand() % (HEIGHT-6)+3};
 }
 
 void draw() {
-    system("clear");  // Use "cls" on Windows
+    clearScreen();
 
     for (int y = 0; y < HEIGHT; y++) {
         for (int x = 0; x < WIDTH; x++) {
@@ -91,7 +141,7 @@ void draw() {
 
 void input() {
     if (!kbhit()) return;
-    char c = getchar();
+    char c = getCharInput();
     switch (c) {
         case 'a': if (dir != RIGHT) dir = LEFT; break;
         case 'd': if (dir != LEFT)  dir = RIGHT; break;
@@ -127,7 +177,7 @@ void logic() {
     snake.insert(snake.begin(), newHead);
 
     if (newHead == food) {
-        food = {rand() % (WIDTH - 2) + 1, rand() % (HEIGHT - 2) + 1};
+        food = {3 + rand() % (WIDTH - 6), 3 + rand() % (HEIGHT - 6)};
     } else {
         snake.pop_back();
     }
@@ -141,9 +191,10 @@ int main() {
         draw();
         input();
         logic();
-        usleep(100000); // 100ms
+        platformSleep(100); // 100ms
     }
 
+    restoreInput();
     cout << "Game Over! Final Score: " << snake.size() - 1 << endl;
     return 0;
 }
