@@ -24,35 +24,28 @@ Position food;
 Direction dir;
 bool gameOver = false;
 
+termios original_term;
+
 void setupInput() {
-    termios term;
-    tcgetattr(STDIN_FILENO, &term);
+    tcgetattr(STDIN_FILENO, &original_term);
+    termios term = original_term;
     term.c_lflag &= ~(ICANON | ECHO);
     tcsetattr(STDIN_FILENO, TCSANOW, &term);
+
+    fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK);  // Set non-blocking input
+}
+
+void restoreInput() {
+    tcsetattr(STDIN_FILENO, TCSANOW, &original_term);
+    fcntl(STDIN_FILENO, F_SETFL, 0); // Set back to blocking
 }
 
 int kbhit() {
-    termios oldt, newt;
-    int ch;
-    int oldf;
-
-    tcgetattr(STDIN_FILENO, &oldt);
-    newt = oldt;
-    newt.c_lflag &= ~(ICANON | ECHO);
-    tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-    oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
-    fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
-
-    ch = getchar();
-
-    tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
-    fcntl(STDIN_FILENO, F_SETFL, oldf);
-
+    int ch = getchar();
     if (ch != EOF) {
         ungetc(ch, stdin);
         return 1;
     }
-
     return 0;
 }
 
