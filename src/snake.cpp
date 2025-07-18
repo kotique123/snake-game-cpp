@@ -3,7 +3,6 @@
 #include <cstdlib>
 #include <ctime>
 
-// Platform-specific includes
 #ifdef WINDOWS_PLATFORM
 #include <windows.h>
 #include <conio.h>
@@ -44,32 +43,27 @@ bool gameOver = false;
 termios original_term;
 #endif
 
-// Platform-specific input setup
 void setupInput()
 {
 #ifdef WINDOWS_PLATFORM
-    // Windows doesn't need special setup for kbhit()
 #else
     tcgetattr(STDIN_FILENO, &original_term);
     termios term = original_term;
     term.c_lflag &= ~(ICANON | ECHO);
     tcsetattr(STDIN_FILENO, TCSANOW, &term);
-    fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK); // Set non-blocking input
+    fcntl(STDIN_FILENO, F_SETFL, O_NONBLOCK); 
 #endif
 }
 
-// Platform-specific input restoration
 void restoreInput()
 {
 #ifdef WINDOWS_PLATFORM
-    // Windows doesn't need special restoration
 #else
     tcsetattr(STDIN_FILENO, TCSANOW, &original_term);
-    fcntl(STDIN_FILENO, F_SETFL, 0); // Set back to blocking
+    fcntl(STDIN_FILENO, F_SETFL, 0);
 #endif
 }
 
-// Platform-specific keyboard hit detection
 int kbhit()
 {
 #ifdef WINDOWS_PLATFORM
@@ -85,7 +79,6 @@ int kbhit()
 #endif
 }
 
-// Platform-specific character input
 char getCharInput()
 {
 #ifdef WINDOWS_PLATFORM
@@ -95,7 +88,6 @@ char getCharInput()
 #endif
 }
 
-// Platform-specific screen clearing
 void clearScreen()
 {
 #ifdef WINDOWS_PLATFORM
@@ -105,7 +97,6 @@ void clearScreen()
 #endif
 }
 
-// Platform-specific sleep function
 void platformSleep(int milliseconds)
 {
 #ifdef WINDOWS_PLATFORM
@@ -218,11 +209,9 @@ void logic()
         break;
     }
 
-    // Wall collision
     if (newHead.x <= 0 || newHead.x >= WIDTH - 1 || newHead.y <= 0 || newHead.y >= HEIGHT - 1)
         gameOver = true;
 
-    // Self collision
     for (auto segment : snake)
         if (newHead == segment)
             gameOver = true;
